@@ -1,0 +1,131 @@
+#include <Adafruit_GFX.h>
+#include <Adafruit_ST7735.h>
+#include <SPI.h>
+
+#define TFT_CS   10
+#define TFT_RST  8
+#define TFT_DC   9
+#define BUTTON   7
+
+Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
+
+bool waitForPress() {
+  // Wait until button is released first
+  while (digitalRead(BUTTON) == LOW) delay(10);
+  // Then wait for a fresh press
+  while (digitalRead(BUTTON) == HIGH) delay(10);
+  delay(50); // debounce
+  return true;
+}
+
+void setup() {
+  pinMode(BUTTON, INPUT_PULLUP);
+  tft.initR(INITR_BLACKTAB);
+  tft.setRotation(0); // portrait
+  showWaitScreen();
+}
+
+void loop() {
+  if (digitalRead(BUTTON) == LOW) {
+    delay(200);
+    runGame();
+  }
+}
+
+void runGame() {
+  tft.fillScreen(ST77XX_BLACK);
+  tft.setTextColor(ST77XX_WHITE);
+  tft.setTextSize(2);
+  tft.setCursor(10, 60);
+  tft.print("Get");
+  tft.setCursor(10, 85);
+  tft.print("ready...");
+
+  long waitTime = random(2000, 5000);
+  unsigned long start = millis();
+
+  // If button pressed early — penalty
+  while (millis() - start < waitTime) {
+    if (digitalRead(BUTTON) == LOW) {
+      showFail("Too early!");
+      return;
+    }
+  }
+
+  // Show GO and start timer
+  tft.fillScreen(ST77XX_GREEN);
+  tft.setTextColor(ST77XX_BLACK);
+  tft.setTextSize(3);
+  tft.setCursor(25, 70);
+  tft.print("GO!");
+
+  unsigned long reactionStart = millis();
+
+  while (digitalRead(BUTTON) == HIGH) {
+    // waiting...
+  }
+
+  long reactionTime = millis() - reactionStart;
+  showResult(reactionTime);
+}
+
+void showResult(long ms) {
+  tft.fillScreen(ST77XX_BLACK);
+  tft.setTextColor(ST77XX_YELLOW);
+  tft.setTextSize(2);
+  tft.setCursor(10, 20);
+  tft.print("Time:");
+  tft.setCursor(10, 50);
+  tft.setTextSize(3);
+  tft.setTextColor(ST77XX_WHITE);
+  tft.print(ms);
+  tft.setTextSize(2);
+  tft.print("ms");
+
+  tft.setTextSize(1);
+  tft.setCursor(10, 100);
+  if (ms < 200) {
+    tft.setTextColor(ST77XX_GREEN);
+    tft.print("Lightning fast!");
+  } else if (ms < 300) {
+    tft.setTextColor(ST77XX_CYAN);
+    tft.print("Great reflexes!");
+  } else if (ms < 450) {
+    tft.setTextColor(ST77XX_YELLOW);
+    tft.print("Not bad!");
+  } else {
+    tft.setTextColor(ST77XX_RED);
+    tft.print("Keep practicing!");
+  }
+
+  tft.setTextColor(ST77XX_WHITE);
+  tft.setTextSize(1);
+  tft.setCursor(10, 140);
+  tft.print("Press to play again");
+
+  waitForPress(); // clean press to restart
+}
+
+void showFail(const char* msg) {
+  tft.fillScreen(ST77XX_RED);
+  tft.setTextColor(ST77XX_WHITE);
+  tft.setTextSize(2);
+  tft.setCursor(15, 70);
+  tft.print(msg);
+  delay(1500);
+  showWaitScreen();
+}
+
+void showWaitScreen() {
+  tft.fillScreen(ST77XX_BLACK);
+  tft.setTextColor(ST77XX_CYAN);
+  tft.setTextSize(2);
+  tft.setCursor(10, 50);
+  tft.print("Reaction");
+  tft.setCursor(10, 75);
+  tft.print("Timer!");
+  tft.setTextSize(1);
+  tft.setTextColor(ST77XX_WHITE);
+  tft.setCursor(10, 120);
+  tft.print("Press to start");
+}
